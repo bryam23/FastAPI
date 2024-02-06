@@ -53,3 +53,5 @@ El equipo SoyHenry proporciono los datasets necesarios para este proyecto.
 Deploy: https://bryam.onrender.com/docs
 
 Fuente de Datos: https://drive.google.com/drive/folders/1HqBG2-sUkz_R3h1dZU5F2uAzpRn7BSpj
+
+Link al video: https://www.youtube.com/watch?v=FmAMQF_wnUM&t=301s
