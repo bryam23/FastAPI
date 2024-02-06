@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 import pandas as pd 
+from sklearn.metrics.pairwise import cosine_similarity
 
 app= FastAPI()
 
@@ -10,6 +11,8 @@ funcion2=pd.read_parquet('data/userdata.parquet')
 funcion3=pd.read_parquet('data/UserForGenre.parquet')
 funcion4=pd.read_parquet('data/best_developer_year.parquet')
 funcion5=pd.read_parquet('data/developer_reviews_analysis.parquet')
+modelo_recomendacion=pd.read_parquet('data/modelo_render.parquet')
+
 
 
 
@@ -87,7 +90,7 @@ def best_developer_year(year: int):
     # obtenemos top 3 de los desarrolladores
     top_3_best_developers= conteo_recomendaciones.nlargest(3).index.tolist()
     return [{'Puesto 1':top_3_best_developers[0], 'Puesto 2':top_3_best_developers[1], 'Puesto 3':top_3_best_developers[2]}]
-best_developer_year(2011)
+
 
 
 
@@ -101,3 +104,41 @@ def developer_reviews_analysis(desarrolladora:str):
     # resultado a devolver
     resultado= {desarrolladora: ['Negativo: ' + str(sentiment_count.get(0,0)), 'Positivo:' + str(sentiment_count.get(2,0))]}
     return resultado
+
+
+
+
+# sexta funcion
+@app.get('/recomendacion_juego/{id}')
+def recomendacion_juego(id: int):
+    
+    # verificamos si el juego con game_id existe en el dataframe
+    game = modelo_recomendacion[modelo_recomendacion['item_id'] == id]
+
+    if game.empty:
+        return("El juego '{id}' no posee registros.")
+    
+    # obtenemos el indice del juego dado
+    idx = game.index[0]
+
+    # tomamos una muestra aleatoria del dataframe
+    sample_size= 2000  # definimos el tamaño de la muestra (ajusta según sea necesario)
+    df_sample = modelo_recomendacion.sample(n=sample_size, random_state=42)  # ajustamos la semilla aleatoria segun sea necesario
+
+    # calculamos la similitud de contenido solo para el juego dado y la muestra
+    sim_scores = cosine_similarity([modelo_recomendacion.iloc[idx, 3:]], df_sample.iloc[:, 3:])
+
+    # obtenemos las puntuaciones de similitud del juego dado con otros juegos
+    sim_scores = sim_scores[0]
+
+    # ordenamos los juegos por similitud en orden descendente
+    similar_games = [(i, sim_scores[i]) for i in range(len(sim_scores)) if i != idx]
+    similar_games = sorted(similar_games, key=lambda x: x[1], reverse=True)
+
+    # obtenemos los 5 juegos mas similares
+    similar_game_indices = [i[0] for i in similar_games[:5]]
+
+    # lista de los juegos similares (solo nombres)
+    similar_game_names = df_sample['app_name'].iloc[similar_game_indices].tolist()
+
+    return {"similar_games": similar_game_names}
